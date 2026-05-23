@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2048" height="2048" viewBox="0 0 2048 2048">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0A0B14" />
+      <stop offset="100%" stop-color="#141521" />
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="40%" r="45%">
+      <stop offset="0%" stop-color="#9747FF" stop-opacity="0.35" />
+      <stop offset="55%" stop-color="#7B2FBE" stop-opacity="0.18" />
+      <stop offset="100%" stop-color="#0A0B14" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="2048" height="2048" fill="url(#bg)" />
+  <circle cx="1024" cy="780" r="560" fill="url(#halo)" />
+
+  <text x="1024" y="980" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="560" font-weight="700" fill="#C8FF00">P</text>
+
+  <path d="M640 1180 L900 1180 L980 1040 L1090 1320 L1190 1140 L1408 1140" fill="none" stroke="#7B2FBE" stroke-width="32" stroke-linecap="round" stroke-linejoin="round" />
+
+  <text x="1024" y="1420" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="160" font-weight="600" fill="#FFFFFF" letter-spacing="2">PENNY PULSE</text>
+  <text x="1024" y="1528" text-anchor="middle" font-family="Outfit, Arial, sans-serif" font-size="44" font-weight="500" fill="#8B8FA8" letter-spacing="3">PERSONAL FINANCE</text>
+</svg>
