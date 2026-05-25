@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../features/auth/data/token_store.dart';
 import '../config/api_config.dart';
 
 final dioProvider = Provider<Dio>((ref) {
@@ -26,8 +27,17 @@ final dioProvider = Provider<Dio>((ref) {
 
   dio.interceptors.add(
     InterceptorsWrapper(
-      onRequest: (options, handler) {
+      onRequest: (options, handler) async {
         debugPrint('[HTTP] ${options.method} ${options.uri}');
+        try {
+          final token = await ref.read(tokenStoreProvider).readToken();
+          if (token != null && token.isNotEmpty) {
+            options.headers[HttpHeaders.authorizationHeader] = 'Bearer $token';
+            options.headers['X-Auth-Token'] = token;
+          }
+        } catch (e) {
+          debugPrint('[HTTP] Error reading token from store: $e');
+        }
         handler.next(options);
       },
     ),

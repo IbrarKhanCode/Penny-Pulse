@@ -60,7 +60,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> logout() => _tokenStore.clearToken();
+  Future<void> logout() async {
+    final token = await _tokenStore.readToken();
+    if (token != null && token.isNotEmpty) {
+      try {
+        await _api.logout(token: token);
+      } on DioException {
+        // Best-effort revoke; still clear local token.
+      }
+    }
+    await _tokenStore.clearToken();
+  }
 
   AppException _mapDioError(DioException e) {
     final statusCode = e.response?.statusCode;

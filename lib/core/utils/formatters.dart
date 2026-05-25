@@ -1,7 +1,7 @@
 import 'package:intl/intl.dart';
 
 final _currencyFormatter = NumberFormat.currency(
-  symbol: '\$',
+  symbol: 'PKR ',
   decimalDigits: 2,
 );
 final _dateFormatter = DateFormat('MMM d, yyyy');

@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../features/expenses/presentation/state/expenses_controller.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../app/shell_providers.dart';
 import '../../data/auth_repository_impl.dart';
+import '../state/profile_provider.dart';
 import '../widgets/auth_background.dart';
 import '../widgets/fade_slide_in.dart';
 
@@ -65,6 +68,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _passwordController.text,
           );
       if (!mounted) return;
+      ref.invalidate(profileProvider);
+      ref.invalidate(historyProvider);
+      ref.read(shellTabProvider.notifier).state = 0;
       context.go('/');
     } on AppException catch (e) {
       _showMessage(e.message);

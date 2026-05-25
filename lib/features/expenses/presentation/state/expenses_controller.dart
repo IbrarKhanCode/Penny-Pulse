@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../data/models/expense.dart';
 import '../../domain/usecases/add_expense.dart';
+import '../../domain/usecases/delete_expense.dart';
 import '../../domain/usecases/get_history.dart';
 import '../../domain/usecases/predict_expense.dart';
 import 'expenses_state.dart';
@@ -24,10 +25,25 @@ class HistoryNotifier extends AsyncNotifier<List<Expense>> {
     );
   }
 
-  /// Removes an expense from local state without a server call (optimistic).
-  void deleteExpense(int id) {
+  void clearCache() {
+    state = const AsyncData([]);
+  }
+
+  /// Removes an expense with optimistic state update and server synchronization.
+  Future<void> deleteExpense(int id) async {
+    final previousState = state;
     final current = state.valueOrNull ?? [];
+    
+    // Optimistic UI update
     state = AsyncData(current.where((e) => e.id != id).toList());
+
+    try {
+      await ref.read(deleteExpenseUseCaseProvider).call(expenseId: id);
+    } catch (e) {
+      // Rollback UI state if server delete fails
+      state = previousState;
+      rethrow;
+    }
   }
 }
 

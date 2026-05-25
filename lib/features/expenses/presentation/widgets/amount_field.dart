@@ -23,7 +23,7 @@ class AmountField extends StatelessWidget {
       decoration: const InputDecoration(
         labelText: 'Amount',
         hintText: '0.00',
-        prefixText: '\$ ',
+        prefixText: 'PKR ',
         border: OutlineInputBorder(),
       ),
     );

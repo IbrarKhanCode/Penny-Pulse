@@ -42,6 +42,11 @@ class PennyPulseApi {
         .map(Expense.fromJson)
         .toList(growable: false);
   }
+
+  Future<ApiMessage> deleteExpense({required int expenseId}) async {
+    final res = await dio.delete<Map<String, dynamic>>('/delete-expense/$expenseId');
+    return ApiMessage.fromJson(res.data!);
+  }
 }
 
 final pennyPulseApiProvider = Provider<PennyPulseApi>((ref) {

@@ -130,8 +130,8 @@ class _CategoryBarChartState extends State<CategoryBarChart> {
               getTitlesWidget: (value, meta) {
                 if (value == 0 || value >= maxY) return const SizedBox.shrink();
                 final label = value >= 1000
-                    ? '\$${(value / 1000).toStringAsFixed(1)}k'
-                    : '\$${value.toStringAsFixed(0)}';
+                  ? 'PKR ${(value / 1000).toStringAsFixed(1)}k'
+                  : 'PKR ${value.toStringAsFixed(0)}';
                 return Text(
                   label,
                   style: const TextStyle(

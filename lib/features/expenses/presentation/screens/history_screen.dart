@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/errors/app_exception.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../data/models/expense.dart';
@@ -214,21 +215,31 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                             extentRatio: 0.25,
                             children: [
                               SlidableAction(
-                                onPressed: (_) {
-                                  ref
-                                      .read(historyProvider.notifier)
-                                      .deleteExpense(expense.id);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: const Text(
-                                        'Transaction deleted',
+                                onPressed: (context) async {
+                                  final scaffoldMessenger = ScaffoldMessenger.of(context);
+                                  try {
+                                    await ref
+                                        .read(historyProvider.notifier)
+                                        .deleteExpense(expense.id);
+                                    scaffoldMessenger.showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'Transaction deleted successfully',
+                                        ),
                                       ),
-                                      action: SnackBarAction(
-                                        label: 'OK',
-                                        onPressed: () {},
+                                    );
+                                  } catch (e) {
+                                    scaffoldMessenger.showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          e is AppException
+                                              ? e.message
+                                              : 'Failed to delete transaction',
+                                        ),
+                                        backgroundColor: AppColors.rose,
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  }
                                 },
                                 backgroundColor: AppColors.rose,
                                 foregroundColor: Colors.white,

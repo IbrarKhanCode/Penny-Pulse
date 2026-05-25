@@ -7,4 +7,6 @@ abstract interface class ExpensesRepository {
   Future<Expense> addExpense({required String text, required double amount});
 
   Future<PredictResponse> predict({required String text});
+
+  Future<void> deleteExpense({required int expenseId});
 }

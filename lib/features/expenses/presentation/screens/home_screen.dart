@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../app/shell_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../auth/presentation/state/profile_provider.dart';
 import '../../data/models/expense.dart';
 import '../state/expenses_controller.dart';
 import '../widgets/expense_tile.dart';
@@ -24,6 +25,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(historyProvider);
+    final profileAsync = ref.watch(profileProvider);
     final (needsTotal, wantsTotal) = ref.watch(needsVsWantsProvider);
 
     return Scaffold(
@@ -68,35 +70,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     GestureDetector(
                       onTap: () {},
-                      child: Row(
-                        children: [
-                          const Text(
-                            'Marcus',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 34,
-                            height: 34,
-                            decoration: const BoxDecoration(
-                              color: AppColors.purple,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: const Text(
-                              'M',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 15,
-                              ),
-                            ),
-                          ),
-                        ],
+                      child: profileAsync.when(
+                        data: (profile) => _UserBadge(email: profile.email),
+                        loading: () => const _UserBadgeSkeleton(),
+                        error: (_, __) => const _UserBadge(email: 'Account'),
                       ),
                     ),
                   ],
@@ -211,15 +188,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               sliver: SliverToBoxAdapter(
                 child: historyAsync.when(
-                  loading: () => const SizedBox(
-                    height: 160,
-                    child: Center(
-                      child: CircularProgressIndicator(
-                        color: AppColors.neonGreen,
-                        strokeWidth: 2,
-                      ),
-                    ),
-                  ),
+                  loading: () => const _SpendingChartSkeleton(),
                   error: (_, __) => const SizedBox.shrink(),
                   data: (expenses) =>
                       _SpendingBarChart(expenses: expenses, range: _chartRange),
@@ -261,7 +230,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
             // ── Recent list ──────────────────────────────────────────────
             historyAsync.when(
-              loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+              loading: () => const SliverPadding(
+                padding: EdgeInsets.fromLTRB(20, 16, 20, 0),
+                sliver: SliverToBoxAdapter(
+                  child: _RecentTransactionsSkeleton(),
+                ),
+              ),
               error: (err, _) => SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.all(24),
@@ -474,7 +448,7 @@ class _BalanceCard extends StatelessWidget {
       if (i > 0 && (s.length - i) % 3 == 0) result.write(',');
       result.write(s[i]);
     }
-    return '\$${result.toString()}';
+    return 'PKR ${result.toString()}';
   }
 
   static String _formatDecimal(double amount) =>
@@ -524,21 +498,364 @@ class _BalanceCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 160,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2A1050), Color(0xFF3D1A7A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+    return _Shimmer(
+      child: Container(
+        height: 176,
+        padding: const EdgeInsets.all(22),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF121212), Color(0xFF232323)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _ShimmerBlock(width: 102, height: 12, borderRadius: 10),
+                _ShimmerBlock(width: 74, height: 20, borderRadius: 12),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _ShimmerBlock(width: 154, height: 40, borderRadius: 14),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                _ShimmerBlock(width: 42, height: 24, borderRadius: 10),
+                Container(
+                  width: 1,
+                  height: 24,
+                  margin: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(24),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+                _ShimmerBlock(width: 48, height: 24, borderRadius: 10),
+                Container(
+                  width: 1,
+                  height: 24,
+                  margin: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withAlpha(24),
+                    borderRadius: BorderRadius.circular(1),
+                  ),
+                ),
+                _ShimmerBlock(width: 32, height: 24, borderRadius: 10),
+              ],
+            ),
+          ],
         ),
       ),
-      child: const Center(
-        child: CircularProgressIndicator(
-          color: AppColors.purpleLight,
-          strokeWidth: 2,
+    );
+  }
+}
+
+class _SpendingChartSkeleton extends StatelessWidget {
+  const _SpendingChartSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Shimmer(
+      child: Container(
+        height: 170,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.cardBorder),
         ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: const [
+                _ShimmerBlock(width: 86, height: 12, borderRadius: 10),
+                _ShimmerBlock(width: 92, height: 28, borderRadius: 10),
+              ],
+            ),
+            const SizedBox(height: 22),
+            Expanded(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: const [
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.42),
+                  SizedBox(width: 10),
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.66),
+                  SizedBox(width: 10),
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.48),
+                  SizedBox(width: 10),
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.82),
+                  SizedBox(width: 10),
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.58),
+                  SizedBox(width: 10),
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.74),
+                  SizedBox(width: 10),
+                  _ChartBarSkeleton(flex: 1, heightFactor: 0.52),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentTransactionsSkeleton extends StatelessWidget {
+  const _RecentTransactionsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: const [
+        _TransactionSkeletonTile(),
+        SizedBox(height: 12),
+        _TransactionSkeletonTile(),
+        SizedBox(height: 12),
+        _TransactionSkeletonTile(),
+        SizedBox(height: 12),
+        _TransactionSkeletonTile(),
+      ],
+    );
+  }
+}
+
+class _TransactionSkeletonTile extends StatelessWidget {
+  const _TransactionSkeletonTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Shimmer(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  _ShimmerBlock(width: 120, height: 14, borderRadius: 10),
+                  SizedBox(height: 8),
+                  _ShimmerBlock(width: 82, height: 10, borderRadius: 8),
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            const _ShimmerBlock(width: 64, height: 16, borderRadius: 10),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _UserBadge extends StatelessWidget {
+  const _UserBadge({required this.email});
+
+  final String email;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceVariant,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.cardBorder),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [AppColors.neonGreen, AppColors.purple],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              _initialFor(email),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 150),
+            child: Text(
+              email,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _initialFor(String email) {
+    final trimmed = email.trim();
+    if (trimmed.isEmpty) return '?';
+    final localPart = trimmed.split('@').first;
+    final source = localPart.isEmpty ? trimmed : localPart;
+    return source[0].toUpperCase();
+  }
+}
+
+class _UserBadgeSkeleton extends StatelessWidget {
+  const _UserBadgeSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return _Shimmer(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF161616),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.cardBorder),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: const [
+            _ShimmerBlock(width: 34, height: 34, borderRadius: 17),
+            SizedBox(width: 10),
+            _ShimmerBlock(width: 110, height: 12, borderRadius: 10),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ChartBarSkeleton extends StatelessWidget {
+  const _ChartBarSkeleton({required this.flex, required this.heightFactor});
+
+  final int flex;
+  final double heightFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      flex: flex,
+      child: Align(
+        alignment: Alignment.bottomCenter,
+        child: FractionallySizedBox(
+          heightFactor: heightFactor,
+          widthFactor: 0.82,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0xFF2A2A2A),
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _Shimmer extends StatefulWidget {
+  const _Shimmer({required this.child});
+
+  final Widget child;
+
+  @override
+  State<_Shimmer> createState() => _ShimmerState();
+}
+
+class _ShimmerState extends State<_Shimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 1400),
+  )..repeat();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      child: widget.child,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) {
+            final shimmer = _controller.value * 2 - 1;
+            return LinearGradient(
+              begin: Alignment(-1.2 + shimmer, -0.2),
+              end: Alignment(1.2 + shimmer, 0.2),
+              colors: [
+                const Color(0xFF1B1B1B),
+                const Color(0xFF3A3A3A),
+                const Color(0xFF1B1B1B),
+              ],
+              stops: const [0.35, 0.5, 0.65],
+            ).createShader(bounds);
+          },
+          child: child,
+        );
+      },
+    );
+  }
+}
+
+class _ShimmerBlock extends StatelessWidget {
+  const _ShimmerBlock({
+    required this.width,
+    required this.height,
+    this.borderRadius = 12,
+  });
+
+  final double width;
+  final double height;
+  final double borderRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFF1F1F1F),
+        borderRadius: BorderRadius.circular(borderRadius),
       ),
     );
   }

@@ -100,6 +100,25 @@ class AuthApi {
       rethrow;
     }
   }
+
+  Future<void> logout({required String token}) async {
+    _log('POST /logout token: ${_maskToken(token)}');
+    try {
+      final res = await dio.post<Map<String, dynamic>>(
+        '/logout',
+        options: Options(
+          headers: {
+            HttpHeaders.authorizationHeader: 'Bearer $token',
+            'X-Auth-Token': token,
+          },
+        ),
+      );
+      _log('POST /logout -> ${res.statusCode} ${res.data}');
+    } on DioException catch (e) {
+      _log('POST /logout error -> ${e.response?.statusCode} ${e.response?.data ?? e.message}');
+      rethrow;
+    }
+  }
 }
 
 final authApiProvider = Provider<AuthApi>((ref) {

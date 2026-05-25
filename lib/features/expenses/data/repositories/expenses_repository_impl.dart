@@ -46,6 +46,15 @@ class ExpensesRepositoryImpl implements ExpensesRepository {
     }
   }
 
+  @override
+  Future<void> deleteExpense({required int expenseId}) async {
+    try {
+      await _api.deleteExpense(expenseId: expenseId);
+    } on DioException catch (e) {
+      throw _mapDioError(e);
+    }
+  }
+
   AppException _mapDioError(DioException e) {
     final statusCode = e.response?.statusCode;
     final detail = e.response?.data is Map

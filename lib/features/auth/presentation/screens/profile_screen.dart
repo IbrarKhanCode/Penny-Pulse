@@ -2,18 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../app/shell_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../expenses/presentation/state/expenses_controller.dart';
 import '../../data/auth_repository_impl.dart';
 import '../state/profile_provider.dart';
 import '../widgets/auth_background.dart';
 import '../widgets/fade_slide_in.dart';
 
-class ProfileScreen extends ConsumerWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+  bool _isLoggingOut = false;
+
+  @override
+  Widget build(BuildContext context) {
     final profileAsync = ref.watch(profileProvider);
 
     return AuthBackground(
@@ -33,12 +42,32 @@ class ProfileScreen extends ConsumerWidget {
                 ),
                 const Spacer(),
                 OutlinedButton(
-                  onPressed: () async {
-                    await ref.read(authRepositoryProvider).logout();
-                    ref.invalidate(profileProvider);
-                    if (context.mounted) context.go('/login');
-                  },
-                  child: const Text('Log out'),
+                  onPressed: _isLoggingOut
+                      ? null
+                      : () async {
+                          setState(() => _isLoggingOut = true);
+                          try {
+                            await ref.read(authRepositoryProvider).logout();
+                            ref.read(historyProvider.notifier).clearCache();
+                            ref.invalidate(historyProvider);
+                            ref.read(shellTabProvider.notifier).state = 0;
+                            if (context.mounted) context.go('/login');
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isLoggingOut = false);
+                            }
+                          }
+                        },
+                  child: _isLoggingOut
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.neonGreen,
+                          ),
+                        )
+                      : const Text('Log out'),
                 ),
               ],
             ),
