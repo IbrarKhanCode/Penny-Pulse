@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_colors.dart';
+import '../features/auth/presentation/screens/profile_screen.dart';
 import '../features/expenses/presentation/screens/analytics_screen.dart';
 import '../features/expenses/presentation/screens/history_screen.dart';
 import '../features/expenses/presentation/screens/home_screen.dart';
@@ -11,11 +12,12 @@ import 'shell_providers.dart';
 class MainShellScreen extends ConsumerWidget {
   const MainShellScreen({super.key});
 
-  // Order: Home → Activity (transactions) → Budget (analytics)
+  // Order: Home → Activity (transactions) → Budget (analytics) → Profile
   static const _tabs = <Widget>[
     HomeScreen(),
     HistoryScreen(),
     AnalyticsScreen(),
+    ProfileScreen(),
   ];
 
   @override
@@ -61,6 +63,11 @@ class _BottomNav extends StatelessWidget {
       icon: Icons.pie_chart_outline_rounded,
       activeIcon: Icons.pie_chart_rounded,
       label: 'BUDGET',
+    ),
+    _NavItem(
+      icon: Icons.person_outline,
+      activeIcon: Icons.person,
+      label: 'PROFILE',
     ),
   ];
 

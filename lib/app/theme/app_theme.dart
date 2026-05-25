@@ -169,7 +169,7 @@ class AppTheme {
             fontWeight: FontWeight.w600,
             fontSize: 15,
           ),
-          minimumSize: const Size.fromHeight(52),
+          minimumSize: const Size(0, 52),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
