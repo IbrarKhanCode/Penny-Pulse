@@ -7,6 +7,7 @@ import '../../../../app/shell_providers.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../auth/presentation/state/profile_provider.dart';
+import '../../../budget/presentation/state/budget_notifier.dart';
 import '../../data/models/expense.dart';
 import '../state/expenses_controller.dart';
 import '../widgets/expense_tile.dart';
@@ -27,6 +28,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final historyAsync = ref.watch(historyProvider);
     final profileAsync = ref.watch(profileProvider);
     final (needsTotal, wantsTotal) = ref.watch(needsVsWantsProvider);
+    final budgetAsync = ref.watch(budgetProvider);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -136,6 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     expenses: expenses,
                     needsTotal: needsTotal,
                     wantsTotal: wantsTotal,
+                    budget: budgetAsync.valueOrNull,
                   ),
                 ),
               ),
@@ -305,15 +308,19 @@ class _BalanceCard extends StatelessWidget {
     required this.expenses,
     required this.needsTotal,
     required this.wantsTotal,
+    required this.budget,
   });
 
   final List<Expense> expenses;
   final double needsTotal;
   final double wantsTotal;
+  final double? budget;
 
   @override
   Widget build(BuildContext context) {
-    final total = expenses.fold<double>(0, (s, e) => s + e.amount);
+    final totalSpent = expenses.fold<double>(0, (s, e) => s + e.amount);
+    final hasBudget = budget != null;
+    final available = hasBudget ? (budget! - totalSpent) : 0.0;
     final now = DateTime.now();
     final monthName = const [
       'JAN',
@@ -346,9 +353,9 @@ class _BalanceCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'AVAILABLE FUNDS',
-                style: TextStyle(
+              Text(
+                hasBudget ? 'AVAILABLE FUNDS' : 'SET YOUR BUDGET',
+                style: const TextStyle(
                   color: Color(0xFFBBA8D8),
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
@@ -387,11 +394,11 @@ class _BalanceCard extends StatelessWidget {
               ),
               children: [
                 TextSpan(
-                  text: _formatWhole(total),
+                  text: _formatWhole(available),
                   style: const TextStyle(fontSize: 38),
                 ),
                 TextSpan(
-                  text: _formatDecimal(total),
+                  text: _formatDecimal(available),
                   style: const TextStyle(
                     fontSize: 22,
                     color: Color(0xFFDDD0F0),
@@ -439,16 +446,17 @@ class _BalanceCard extends StatelessWidget {
   }
 
   static String _formatWhole(double amount) {
-    final parts = amount.toStringAsFixed(2).split('.');
+    final isNegative = amount < 0;
+    final parts = amount.abs().toStringAsFixed(2).split('.');
     final whole = int.parse(parts[0]);
-    // Add thousands separator
     final s = whole.toString();
     final result = StringBuffer();
     for (int i = 0; i < s.length; i++) {
       if (i > 0 && (s.length - i) % 3 == 0) result.write(',');
       result.write(s[i]);
     }
-    return 'PKR ${result.toString()}';
+    final prefix = isNegative ? '-' : '';
+    return 'PKR $prefix${result.toString()}';
   }
 
   static String _formatDecimal(double amount) =>

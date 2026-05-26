@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../budget/presentation/state/budget_notifier.dart';
+import '../../../budget/presentation/widgets/budget_dialog.dart';
 import '../state/expenses_controller.dart';
 
 class AnalyticsScreen extends ConsumerStatefulWidget {
@@ -18,6 +20,8 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
   @override
   Widget build(BuildContext context) {
     final historyAsync = ref.watch(historyProvider);
+    final budgetAsync = ref.watch(budgetProvider);
+    final currentBudget = budgetAsync.valueOrNull;
     // Watch derived providers to keep state fresh
     ref.watch(needsVsWantsProvider);
     ref.watch(categoryBreakdownProvider);
@@ -60,29 +64,68 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                       ),
                     ),
                   ),
-                  // Monthly / Yearly toggle
-                  Container(
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.cardBorder),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _ToggleTab(
-                          label: 'MONTHLY',
-                          active: _isMonthly,
-                          onTap: () => setState(() => _isMonthly = true),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        height: 36,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.cardBorder),
                         ),
-                        _ToggleTab(
-                          label: 'YEARLY',
-                          active: !_isMonthly,
-                          onTap: () => setState(() => _isMonthly = false),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _ToggleTab(
+                              label: 'MONTHLY',
+                              active: _isMonthly,
+                              onTap: () => setState(() => _isMonthly = true),
+                            ),
+                            _ToggleTab(
+                              label: 'YEARLY',
+                              active: !_isMonthly,
+                              onTap: () => setState(() => _isMonthly = false),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 6),
+                      PopupMenuButton<_BudgetAction>(
+                        tooltip: 'Budget options',
+                        color: AppColors.surface,
+                        icon: const Icon(
+                          Icons.more_vert_rounded,
+                          color: AppColors.textSecondary,
+                        ),
+                        onSelected: (action) =>
+                            _handleBudgetAction(context, action, currentBudget),
+                        itemBuilder: (context) {
+                          final hasBudget = currentBudget != null;
+                          return [
+                            PopupMenuItem(
+                              value: hasBudget
+                                  ? _BudgetAction.edit
+                                  : _BudgetAction.set,
+                              child: Text(
+                                hasBudget ? 'Edit budget' : 'Set budget',
+                                style: const TextStyle(
+                                  color: AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
+                            if (hasBudget)
+                              const PopupMenuItem(
+                                value: _BudgetAction.clear,
+                                child: Text(
+                                  'Remove budget',
+                                  style: TextStyle(color: AppColors.rose),
+                                ),
+                              ),
+                          ];
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -131,6 +174,62 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               ),
             ),
             data: (expenses) {
+              if (budgetAsync.isLoading) {
+                return const SliverFillRemaining(
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.neonGreen,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                );
+              }
+              if (currentBudget == null) {
+                return SliverFillRemaining(
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.pie_chart_outline_rounded,
+                          size: 64,
+                          color: AppColors.textTertiary,
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'No budget set yet',
+                          style: TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Set a budget to view your analytics',
+                          style: TextStyle(
+                            color: AppColors.textTertiary,
+                            fontSize: 13,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        FilledButton(
+                          onPressed: () async {
+                            final value = await BudgetDialog.show(context);
+                            if (value == null || !context.mounted) {
+                              return;
+                            }
+                            await ref
+                                .read(budgetProvider.notifier)
+                                .saveBudget(value);
+                          },
+                          child: const Text('Set Budget'),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
               if (expenses.isEmpty) {
                 return const SliverFillRemaining(
                   child: Center(
@@ -144,7 +243,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                         ),
                         SizedBox(height: 12),
                         Text(
-                          'No budget data yet',
+                          'No expenses yet',
                           style: TextStyle(
                             color: AppColors.textSecondary,
                             fontSize: 16,
@@ -153,7 +252,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                         ),
                         SizedBox(height: 4),
                         Text(
-                          'Add some expenses to see your budget',
+                          'Add expenses to see your budget analytics',
                           style: TextStyle(
                             color: AppColors.textTertiary,
                             fontSize: 13,
@@ -177,10 +276,13 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                         .toList()
                   : expenses.where((e) => e.date.year == now.year).toList();
 
-              final total = periodExpenses.fold<double>(
+              final totalSpent = periodExpenses.fold<double>(
                 0,
                 (s, e) => s + e.amount,
               );
+              final budget = budgetAsync.valueOrNull;
+              final totalBudget = budget ?? totalSpent;
+              final remaining = totalBudget - totalSpent;
               final needsPeriod = periodExpenses
                   .where((e) => e.needWant.toLowerCase() == 'need')
                   .fold<double>(0, (s, e) => s + e.amount);
@@ -199,9 +301,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
               final sortedCats = catMap.entries.toList()
                 ..sort((a, b) => b.value.compareTo(a.value));
 
-              // Wants % = "used" (discretionary spending)
-              final usedPct = total > 0
-                  ? (wantsPeriod / total * 100).round()
+              // Spent % of budget (or total spent if no budget yet)
+              final usedPct = totalBudget > 0
+                  ? (totalSpent / totalBudget * 100).round()
                   : 0;
 
               return SliverList(
@@ -211,9 +313,9 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
                     child: _GaugeCard(
                       usedPct: usedPct,
-                      spent: wantsPeriod,
-                      total: total,
-                      left: needsPeriod,
+                      spent: totalSpent,
+                      total: totalBudget,
+                      left: remaining,
                       isMonthly: _isMonthly,
                     ),
                   ),
@@ -247,7 +349,7 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                     (entry) => _CategoryRow(
                       name: entry.key,
                       amount: entry.value,
-                      total: total,
+                      total: totalSpent,
                     ),
                   ),
 
@@ -260,7 +362,64 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
       ),
     );
   }
+
+  Future<void> _handleBudgetAction(
+    BuildContext context,
+    _BudgetAction action,
+    double? currentBudget,
+  ) async {
+    if (action == _BudgetAction.clear) {
+      final confirmed = await _confirmClearBudget(context);
+      if (confirmed != true || !context.mounted) {
+        return;
+      }
+      await ref.read(budgetProvider.notifier).clearBudget();
+      return;
+    }
+
+    final value = await BudgetDialog.show(
+      context,
+      initialValue: action == _BudgetAction.edit ? currentBudget : null,
+    );
+    if (value == null || !context.mounted) {
+      return;
+    }
+    await ref.read(budgetProvider.notifier).saveBudget(value);
+  }
+
+  Future<bool?> _confirmClearBudget(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: const Text(
+          'Remove budget?',
+          style: TextStyle(color: AppColors.textPrimary),
+        ),
+        content: const Text(
+          'Your budget will be cleared for this account.',
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 13),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.rose),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remove'),
+          ),
+        ],
+      ),
+    );
+  }
 }
+
+enum _BudgetAction { set, edit, clear }
 
 // ── Toggle tab ───────────────────────────────────────────────────────────────
 
@@ -356,7 +515,7 @@ class _GaugeCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      isMonthly ? 'WANTS\nTHIS MONTH' : 'WANTS\nTHIS YEAR',
+                      isMonthly ? 'SPENT\nTHIS MONTH' : 'SPENT\nTHIS YEAR',
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.textSecondary,
@@ -388,17 +547,17 @@ class _GaugeCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _GaugeStat(
-                label: 'WANTS',
+                label: 'SPENT',
                 value: formatCurrency(spent),
                 color: AppColors.rose,
               ),
               _GaugeStat(
-                label: 'TOTAL',
+                label: 'BUDGET',
                 value: formatCurrency(total),
                 color: AppColors.textPrimary,
               ),
               _GaugeStat(
-                label: 'NEEDS',
+                label: 'LEFT',
                 value: formatCurrency(left),
                 color: AppColors.emerald,
               ),

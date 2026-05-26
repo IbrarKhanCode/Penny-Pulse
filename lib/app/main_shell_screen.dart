@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../core/theme/app_colors.dart';
 import '../features/auth/presentation/screens/profile_screen.dart';
+import '../features/budget/presentation/state/budget_notifier.dart';
+import '../features/budget/presentation/widgets/budget_dialog.dart';
 import '../features/expenses/presentation/screens/analytics_screen.dart';
 import '../features/expenses/presentation/screens/history_screen.dart';
 import '../features/expenses/presentation/screens/home_screen.dart';
@@ -29,7 +31,7 @@ class MainShellScreen extends ConsumerWidget {
       body: IndexedStack(index: currentIndex, children: _tabs),
       floatingActionButton: FloatingActionButton(
         heroTag: 'main_fab',
-        onPressed: () => context.push('/add-expense'),
+        onPressed: () => _handleAddExpense(context, ref),
         child: const Icon(Icons.add_rounded, size: 28),
       ),
       bottomNavigationBar: _BottomNav(
@@ -37,6 +39,29 @@ class MainShellScreen extends ConsumerWidget {
         onTap: (i) => ref.read(shellTabProvider.notifier).state = i,
       ),
     );
+  }
+
+  Future<void> _handleAddExpense(BuildContext context, WidgetRef ref) async {
+    double? currentBudget;
+    try {
+      currentBudget = await ref.read(budgetProvider.future);
+    } catch (_) {
+      currentBudget = ref.read(budgetProvider).valueOrNull;
+    }
+    if (currentBudget == null) {
+      final newBudget = await _promptForBudget(context);
+      if (newBudget == null) {
+        return;
+      }
+      await ref.read(budgetProvider.notifier).saveBudget(newBudget);
+    }
+    if (context.mounted) {
+      context.push('/add-expense');
+    }
+  }
+
+  Future<double?> _promptForBudget(BuildContext context) async {
+    return BudgetDialog.show(context);
   }
 }
 
