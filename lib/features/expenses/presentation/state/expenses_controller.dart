@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/errors/app_exception.dart';
+import '../../../../core/utils/expense_text_validator.dart';
 import '../../data/models/expense.dart';
 import '../../domain/usecases/add_expense.dart';
 import '../../domain/usecases/delete_expense.dart';
@@ -107,15 +108,18 @@ class AddExpenseFormNotifier extends Notifier<AddExpenseFormState> {
       state = state.copyWith(amountText: value, errorMessage: null);
 
   Future<void> predict() async {
-    if (state.description.trim().isEmpty) {
-      state = state.copyWith(errorMessage: 'Please enter a description first');
+    final normalized = ExpenseTextValidator.normalize(state.description);
+    if (!ExpenseTextValidator.isValidForPrediction(normalized)) {
+      state = state.copyWith(
+        errorMessage: ExpenseTextValidator.invalidPredictionMessage,
+      );
       return;
     }
     state = state.copyWith(isPredicting: true, errorMessage: null);
     try {
       final result = await ref
           .read(predictExpenseUseCaseProvider)
-          .call(text: state.description.trim());
+          .call(text: normalized);
       state = state.copyWith(
         isPredicting: false,
         predictedCategory: result.category,
@@ -130,13 +134,21 @@ class AddExpenseFormNotifier extends Notifier<AddExpenseFormState> {
   }
 
   Future<Expense?> save() async {
-    final desc = state.description.trim();
+    final desc = ExpenseTextValidator.normalize(state.description);
     final amount = double.tryParse(state.amountText.trim());
 
-    if (desc.isEmpty || amount == null) {
+    if (desc.isEmpty && amount == null) {
       state = state.copyWith(
-        errorMessage: 'Please enter a description and valid amount',
+        errorMessage: 'Please enter a description and amount',
       );
+      return null;
+    }
+    if (desc.isEmpty) {
+      state = state.copyWith(errorMessage: 'Please enter a description');
+      return null;
+    }
+    if (amount == null) {
+      state = state.copyWith(errorMessage: 'Please enter an amount');
       return null;
     }
 

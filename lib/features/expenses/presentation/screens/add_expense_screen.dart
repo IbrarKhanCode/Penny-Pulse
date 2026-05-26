@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/utils/expense_text_validator.dart';
 import '../../../voice/voice_input_notifier.dart';
 import '../state/expenses_controller.dart';
 import '../widgets/amount_field.dart';
@@ -33,6 +34,36 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
     final voiceState = ref.watch(voiceInputProvider);
     final voiceNotifier = ref.read(voiceInputProvider.notifier);
 
+    void showSnackMessage(String message) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AppColors.surfaceVariant,
+        ),
+      );
+    }
+
+    final validationSnackMessages = <String>{
+      ExpenseTextValidator.invalidPredictionMessage,
+      'Please enter a description',
+      'Please enter an amount',
+      'Please enter a description and amount',
+    };
+
+    ref.listen<String?>(
+      addExpenseFormProvider.select((state) => state.errorMessage),
+      (previous, next) {
+        if (next == null || next == previous) {
+          return;
+        }
+        if (validationSnackMessages.contains(next)) {
+          showSnackMessage(next);
+        }
+      },
+    );
+
     ref.listen<VoiceInputState>(voiceInputProvider, (previous, next) {
       if (previous?.error != next.error && next.error != null) {
         String message;
@@ -61,7 +92,7 @@ class _AddExpenseScreenState extends ConsumerState<AddExpenseScreen> {
         voiceNotifier.clearError();
       }
 
-      final recognized = next.recognizedText.trim();
+      final recognized = ExpenseTextValidator.normalize(next.recognizedText);
       if (previous?.recognizedText != next.recognizedText &&
           recognized.isNotEmpty &&
           !next.isListening) {

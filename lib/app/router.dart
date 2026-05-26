@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/presentation/screens/login_screen.dart';
@@ -47,3 +48,7 @@ final appRouter = GoRouter(
     ),
   ],
 );
+
+final routerProvider = Provider<GoRouter>((ref) {
+  return appRouter;
+});

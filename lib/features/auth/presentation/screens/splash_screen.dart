@@ -41,7 +41,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
 
-    final token = await ref.read(tokenStoreProvider).readToken();
+    final token = await ref.read(tokenStoreProvider).readAccessToken();
     if (!mounted) return;
     final hasToken = token != null && token.isNotEmpty;
     context.go(hasToken ? '/' : '/login');

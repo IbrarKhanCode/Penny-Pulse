@@ -38,7 +38,10 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await _api.login(
         LoginRequest(email: email, password: password),
       );
-      await _tokenStore.saveToken(response.accessToken);
+      await _tokenStore.saveAccessToken(response.accessToken);
+      if (response.refreshToken != null && response.refreshToken!.isNotEmpty) {
+        await _tokenStore.saveRefreshToken(response.refreshToken!);
+      }
       return response.user;
     } on DioException catch (e) {
       throw _mapDioError(e);
@@ -47,7 +50,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<ProfileResponse> profile() async {
-    final token = await _tokenStore.readToken();
+    final token = await _tokenStore.readAccessToken();
     if (token == null || token.isEmpty) {
       throw const AppException(message: 'Please log in again.');
     }
@@ -61,7 +64,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    final token = await _tokenStore.readToken();
+    final token = await _tokenStore.readAccessToken();
     if (token != null && token.isNotEmpty) {
       try {
         await _api.logout(token: token);
@@ -69,7 +72,7 @@ class AuthRepositoryImpl implements AuthRepository {
         // Best-effort revoke; still clear local token.
       }
     }
-    await _tokenStore.clearToken();
+    await _tokenStore.clearTokens();
   }
 
   AppException _mapDioError(DioException e) {

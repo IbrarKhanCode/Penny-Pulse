@@ -119,6 +119,31 @@ class AuthApi {
       rethrow;
     }
   }
+
+  Future<Map<String, dynamic>> refresh({required String refreshToken}) async {
+    _log('POST /refresh refreshToken: ${_maskToken(refreshToken)}');
+    try {
+      final res = await dio.post<Map<String, dynamic>>(
+        '/refresh',
+        data: jsonEncode({'refresh_token': refreshToken}),
+        options: Options(
+          headers: {
+            HttpHeaders.contentTypeHeader: 'application/json',
+            HttpHeaders.acceptHeader: 'application/json',
+          },
+          validateStatus: (status) => status != null && status < 600,
+        ),
+      );
+      _log('POST /refresh -> ${res.statusCode} ${res.data}');
+      if (res.statusCode == 200 && res.data != null) {
+        return res.data!;
+      }
+      throw DioException(requestOptions: res.requestOptions, response: res);
+    } on DioException catch (e) {
+      _log('POST /refresh error -> ${e.response?.statusCode} ${e.response?.data ?? e.message}');
+      rethrow;
+    }
+  }
 }
 
 final authApiProvider = Provider<AuthApi>((ref) {

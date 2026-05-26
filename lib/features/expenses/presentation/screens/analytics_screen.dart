@@ -213,17 +213,33 @@ class _AnalyticsScreenState extends ConsumerState<AnalyticsScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        FilledButton(
-                          onPressed: () async {
-                            final value = await BudgetDialog.show(context);
-                            if (value == null || !context.mounted) {
-                              return;
-                            }
-                            await ref
-                                .read(budgetProvider.notifier)
-                                .saveBudget(value);
-                          },
-                          child: const Text('Set Budget'),
+                        SizedBox(
+                          width: 142,
+                          height: 40,
+                          child: FilledButton(
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 10,
+                              ),
+                              textStyle: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                              minimumSize: const Size(0, 40),
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            onPressed: () async {
+                              final value = await BudgetDialog.show(context);
+                              if (value == null || !context.mounted) {
+                                return;
+                              }
+                              await ref
+                                  .read(budgetProvider.notifier)
+                                  .saveBudget(value);
+                            },
+                            child: const Text('Set Budget'),
+                          ),
                         ),
                       ],
                     ),
@@ -544,22 +560,30 @@ class _GaugeCard extends StatelessWidget {
           const SizedBox(height: 16),
           // Stats row
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _GaugeStat(
-                label: 'SPENT',
-                value: formatCurrency(spent),
-                color: AppColors.rose,
+              Expanded(
+                child: _GaugeStat(
+                  label: 'SPENT',
+                  value: formatCurrency(spent),
+                  color: AppColors.rose,
+                ),
               ),
-              _GaugeStat(
-                label: 'BUDGET',
-                value: formatCurrency(total),
-                color: AppColors.textPrimary,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _GaugeStat(
+                  label: 'BUDGET',
+                  value: formatCurrency(total),
+                  color: AppColors.textPrimary,
+                ),
               ),
-              _GaugeStat(
-                label: 'LEFT',
-                value: formatCurrency(left),
-                color: AppColors.emerald,
+              const SizedBox(width: 12),
+              Expanded(
+                child: _GaugeStat(
+                  label: 'LEFT',
+                  value: formatCurrency(left),
+                  color: AppColors.emerald,
+                ),
               ),
             ],
           ),
@@ -582,6 +606,7 @@ class _GaugeStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
           label,
@@ -593,12 +618,16 @@ class _GaugeStat extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            value,
+            maxLines: 1,
+            style: TextStyle(
+              color: color,
+              fontSize: 15,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
       ],
